@@ -146,7 +146,7 @@ private String getLocalIPAddress() {
                 DatagramSocket socket = new DatagramSocket(port);
                 SwingUtilities.invokeLater(() -> statusLabel.setText("Listening on port " + port + "..."));
 
-                byte[] buffer = new byte[1024];
+                byte[] buffer = new byte[5120];
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 
                 socket.receive(packet);

@@ -118,7 +118,7 @@ public class FileSenderGUI extends JFrame {
                 InetAddress serverInetAddress = InetAddress.getByName(serverAddress);
                 FileInputStream fileInputStream = new FileInputStream(file);
 
-                byte[] buffer = new byte[1024];
+                byte[] buffer = new byte[5120];
                 int bytesRead;
                 long totalBytesSent = 0;
                 long fileLength = file.length();
