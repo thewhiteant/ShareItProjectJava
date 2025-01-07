@@ -1,8 +1,5 @@
-
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.*;
 
@@ -10,20 +7,19 @@ public class FileSenderGUI extends JFrame {
     private JTextField serverField, portField;
     private JLabel statusLabel;
     private JButton selectFileButton, sendFileButton;
+    private JProgressBar progressBar;
     private File selectedFile;
 
     public FileSenderGUI() {
         setTitle("AntShare Sender");
-        setSize(500, 300);
+        setSize(500, 350);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridBagLayout());
         getContentPane().setBackground(new Color(230, 250, 240));
-
-        // Get local IP address as the default server address
-        String localIp = "192.168.0.1"; // Default IP, change it to get your real local IP address
+        String localIp = "127.0.0.1"; // Default to localhost loopback address
 
         try {
-            localIp = InetAddress.getLocalHost().getHostAddress(); // This gets the local machine's IP address
+            localIp = InetAddress.getByName("localhost").getHostAddress(); // Resolve localhost directly
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
@@ -34,7 +30,7 @@ public class FileSenderGUI extends JFrame {
 
         JLabel serverLabel = new JLabel("Server Address:");
         serverLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        serverField = new JTextField(localIp); // Use local IP as the default value
+        serverField = new JTextField(localIp);
         serverField.setPreferredSize(new Dimension(200, 30));
 
         JLabel portLabel = new JLabel("Port:");
@@ -55,6 +51,10 @@ public class FileSenderGUI extends JFrame {
         sendFileButton.setBackground(new Color(100, 200, 150));
         sendFileButton.setForeground(Color.WHITE);
         sendFileButton.setFocusPainted(false);
+
+        progressBar = new JProgressBar();
+        progressBar.setStringPainted(true);
+        progressBar.setVisible(false);
 
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -77,6 +77,9 @@ public class FileSenderGUI extends JFrame {
         add(sendFileButton, gbc);
 
         gbc.gridy = 4;
+        add(progressBar, gbc);
+
+        gbc.gridy = 5;
         add(statusLabel, gbc);
 
         selectFileButton.addActionListener(e -> {
@@ -97,43 +100,71 @@ public class FileSenderGUI extends JFrame {
                     if (port < 1 || port > 65535) {
                         throw new NumberFormatException();
                     }
-                    sendFile(selectedFile, server, port);
-                    statusLabel.setText("File sent successfully.");
-                    JOptionPane.showMessageDialog(this, "File sent successfully!");
+                    progressBar.setVisible(true);
+                    progressBar.setValue(0);
+                    sendFileInBackground(selectedFile, server, port);
                 } catch (NumberFormatException ex) {
                     statusLabel.setText("Invalid port. Enter a number between 1 and 65535.");
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                    statusLabel.setText("Failed to send file.");
                 }
             }
         });
     }
 
-    public void sendFile(File file, String serverAddress, int port) throws IOException {
-        DatagramSocket socket = new DatagramSocket();
-        InetAddress serverInetAddress = InetAddress.getByName(serverAddress);
-        FileInputStream fileInputStream = new FileInputStream(file);
+    private void sendFileInBackground(File file, String serverAddress, int port) {
+        SwingWorker<Void, Integer> worker = new SwingWorker<>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                DatagramSocket socket = new DatagramSocket();
+                InetAddress serverInetAddress = InetAddress.getByName(serverAddress);
+                FileInputStream fileInputStream = new FileInputStream(file);
 
-        byte[] buffer = new byte[1024];
-        int bytesRead;
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                long totalBytesSent = 0;
+                long fileLength = file.length();
 
-        byte[] fileNameBytes = file.getName().getBytes();
-        DatagramPacket namePacket = new DatagramPacket(fileNameBytes, fileNameBytes.length, serverInetAddress, port);
-        socket.send(namePacket);
+                byte[] fileNameBytes = file.getName().getBytes();
+                DatagramPacket namePacket = new DatagramPacket(fileNameBytes, fileNameBytes.length, serverInetAddress, port);
+                socket.send(namePacket);
 
-        long fileLength = file.length();
-        DatagramPacket sizePacket = new DatagramPacket(Long.toString(fileLength).getBytes(), Long.toString(fileLength).getBytes().length, serverInetAddress, port);
-        socket.send(sizePacket);
+                DatagramPacket sizePacket = new DatagramPacket(Long.toString(fileLength).getBytes(), Long.toString(fileLength).getBytes().length, serverInetAddress, port);
+                socket.send(sizePacket);
 
-        while ((bytesRead = fileInputStream.read(buffer)) != -1) {
-            DatagramPacket packet = new DatagramPacket(buffer, bytesRead, serverInetAddress, port);
-            socket.send(packet);
-        }
+                while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+                    DatagramPacket packet = new DatagramPacket(buffer, bytesRead, serverInetAddress, port);
+                    socket.send(packet);
+                    totalBytesSent += bytesRead;
+                    int progress = (int) ((totalBytesSent * 100) / fileLength);
+                    publish(progress);
+                }
 
-        fileInputStream.close();
-        socket.close();
+                fileInputStream.close();
+                socket.close();
+                return null;
+            }
+
+            @Override
+            protected void process(java.util.List<Integer> chunks) {
+                int lastProgress = chunks.get(chunks.size() - 1);
+                progressBar.setValue(lastProgress);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    statusLabel.setText("File sent successfully.");
+                    JOptionPane.showMessageDialog(FileSenderGUI.this, "File sent successfully!");
+                } catch (Exception e) {
+                    statusLabel.setText("Failed to send file.");
+                    e.printStackTrace();
+                } finally {
+                    progressBar.setVisible(false);
+                }
+            }
+        };
+        worker.execute();
     }
 
-   
+
 }

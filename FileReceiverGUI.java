@@ -4,8 +4,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.*;
+import java.util.Enumeration;
 import java.awt.datatransfer.*;
-import java.awt.Toolkit;
 
 public class FileReceiverGUI extends JFrame {
     private JTextField portField;
@@ -120,15 +120,25 @@ public class FileReceiverGUI extends JFrame {
         });
     }
 
-    private String getLocalIPAddress() {
-        try {
-            InetAddress localHost = InetAddress.getLocalHost();
-            return localHost.getHostAddress();
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-            return "Unknown IP";
+private String getLocalIPAddress() {
+    try {
+        Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+        while (interfaces.hasMoreElements()) {
+            NetworkInterface ni = interfaces.nextElement();
+            Enumeration<InetAddress> addresses = ni.getInetAddresses();
+            while (addresses.hasMoreElements()) {
+                InetAddress addr = addresses.nextElement();
+                if (!addr.isLoopbackAddress() && addr instanceof Inet4Address) {
+                    return addr.getHostAddress();
+                }
+            }
         }
+    } catch (SocketException e) {
+        e.printStackTrace();
     }
+    return "127.0.0.1";
+}
+
 
     public void startReceiver(int port) {
         new Thread(() -> {
