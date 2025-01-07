@@ -1,4 +1,3 @@
-// FileSenderGUI.java
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -14,10 +13,19 @@ public class FileSenderGUI extends JFrame {
 
     public FileSenderGUI() {
         setTitle("File Sender");
-        setSize(450, 250);
+        setSize(500, 300);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridBagLayout());
         getContentPane().setBackground(new Color(230, 250, 240));
+
+        // Get local IP address as the default server address
+        String localIp = "192.168.0.1"; // Default IP, change it to get your real local IP address
+
+        try {
+            localIp = InetAddress.getLocalHost().getHostAddress(); // This gets the local machine's IP address
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
@@ -25,11 +33,13 @@ public class FileSenderGUI extends JFrame {
 
         JLabel serverLabel = new JLabel("Server Address:");
         serverLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        serverField = new JTextField("localhost");
+        serverField = new JTextField(localIp); // Use local IP as the default value
+        serverField.setPreferredSize(new Dimension(200, 30));
 
         JLabel portLabel = new JLabel("Port:");
         portLabel.setFont(new Font("Arial", Font.BOLD, 14));
         portField = new JTextField("12345");
+        portField.setPreferredSize(new Dimension(100, 30));
 
         statusLabel = new JLabel("Select a file to send.");
         statusLabel.setFont(new Font("Arial", Font.ITALIC, 12));
@@ -68,32 +78,32 @@ public class FileSenderGUI extends JFrame {
         gbc.gridy = 4;
         add(statusLabel, gbc);
 
-        selectFileButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JFileChooser fileChooser = new JFileChooser();
-                int result = fileChooser.showOpenDialog(FileSenderGUI.this);
-                if (result == JFileChooser.APPROVE_OPTION) {
-                    selectedFile = fileChooser.getSelectedFile();
-                    statusLabel.setText("Selected File: " + selectedFile.getName());
-                    sendFileButton.setEnabled(true);
-                }
+        selectFileButton.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            int result = fileChooser.showOpenDialog(FileSenderGUI.this);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                selectedFile = fileChooser.getSelectedFile();
+                statusLabel.setText("Selected File: " + selectedFile.getName());
+                sendFileButton.setEnabled(true);
             }
         });
 
-        sendFileButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (selectedFile != null) {
-                    String server = serverField.getText();
+        sendFileButton.addActionListener(e -> {
+            if (selectedFile != null) {
+                String server = serverField.getText();
+                try {
                     int port = Integer.parseInt(portField.getText());
-                    try {
-                        sendFile(selectedFile, server, port);
-                        statusLabel.setText("File sent successfully.");
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                        statusLabel.setText("Failed to send file.");
+                    if (port < 1 || port > 65535) {
+                        throw new NumberFormatException();
                     }
+                    sendFile(selectedFile, server, port);
+                    statusLabel.setText("File sent successfully.");
+                    JOptionPane.showMessageDialog(this, "File sent successfully!");
+                } catch (NumberFormatException ex) {
+                    statusLabel.setText("Invalid port. Enter a number between 1 and 65535.");
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                    statusLabel.setText("Failed to send file.");
                 }
             }
         });
@@ -124,5 +134,5 @@ public class FileSenderGUI extends JFrame {
         socket.close();
     }
 
-
+   
 }

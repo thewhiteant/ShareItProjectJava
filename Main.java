@@ -1,4 +1,3 @@
-// Main.java
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -7,7 +6,7 @@ import java.awt.event.ActionListener;
 public class Main extends JFrame {
     public Main() {
         setTitle("File Transfer - Main Menu");
-        setSize(350, 200);
+        setSize(350, 250);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridBagLayout());
         getContentPane().setBackground(new Color(255, 240, 230));
@@ -29,6 +28,11 @@ public class Main extends JFrame {
         receiverButton.setForeground(Color.WHITE);
         receiverButton.setFocusPainted(false);
 
+        JButton exitButton = new JButton("Exit");
+        exitButton.setBackground(new Color(200, 100, 100));
+        exitButton.setForeground(Color.WHITE);
+        exitButton.setFocusPainted(false);
+
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 2;
@@ -41,21 +45,22 @@ public class Main extends JFrame {
         gbc.gridx = 1;
         add(receiverButton, gbc);
 
-        senderButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                SwingUtilities.invokeLater(() -> new FileSenderGUI().setVisible(true));
-                dispose(); // Close the main menu
-            }
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        add(exitButton, gbc);
+
+        senderButton.addActionListener(e -> {
+            SwingUtilities.invokeLater(() -> new FileSenderGUI().setVisible(true));
+            setVisible(false);
         });
 
-        receiverButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                SwingUtilities.invokeLater(() -> new FileReceiverGUI().setVisible(true));
-                dispose(); // Close the main menu
-            }
+        receiverButton.addActionListener(e -> {
+            SwingUtilities.invokeLater(() -> new FileReceiverGUI().setVisible(true));
+            setVisible(false);
         });
+
+        exitButton.addActionListener(e -> System.exit(0));
     }
 
     public static void main(String[] args) {

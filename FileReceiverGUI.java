@@ -1,3 +1,5 @@
+
+
 // FileReceiverGUI.java
 import javax.swing.*;
 import java.awt.*;
@@ -26,6 +28,7 @@ public class FileReceiverGUI extends JFrame {
         JLabel portLabel = new JLabel("Port:");
         portLabel.setFont(new Font("Arial", Font.BOLD, 14));
         portField = new JTextField("12345");
+
         statusLabel = new JLabel("Waiting to start...");
         statusLabel.setFont(new Font("Arial", Font.ITALIC, 12));
 
@@ -66,38 +69,29 @@ public class FileReceiverGUI extends JFrame {
         gbc.gridy = 4;
         add(openFileButton, gbc);
 
-        startButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int port = Integer.parseInt(portField.getText());
-                startReceiver(port);
-            }
+        startButton.addActionListener(e -> {
+            int port = Integer.parseInt(portField.getText());
+            startReceiver(port);
         });
 
-        openLocationButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (receivedFile != null) {
-                    try {
-                        Desktop.getDesktop().open(receivedFile.getParentFile());
-                    } catch (IOException ex) {
-                        ex.printStackTrace();
-                        JOptionPane.showMessageDialog(FileReceiverGUI.this, "Failed to open file location.");
-                    }
+        openLocationButton.addActionListener(e -> {
+            if (receivedFile != null) {
+                try {
+                    Desktop.getDesktop().open(receivedFile.getParentFile());
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(FileReceiverGUI.this, "Failed to open file location.");
                 }
             }
         });
 
-        openFileButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (receivedFile != null) {
-                    try {
-                        Desktop.getDesktop().open(receivedFile);
-                    } catch (IOException ex) {
-                        ex.printStackTrace();
-                        JOptionPane.showMessageDialog(FileReceiverGUI.this, "Failed to open file.");
-                    }
+        openFileButton.addActionListener(e -> {
+            if (receivedFile != null) {
+                try {
+                    Desktop.getDesktop().open(receivedFile);
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(FileReceiverGUI.this, "Failed to open file.");
                 }
             }
         });
@@ -107,7 +101,7 @@ public class FileReceiverGUI extends JFrame {
         new Thread(() -> {
             try {
                 DatagramSocket socket = new DatagramSocket(port);
-                statusLabel.setText("Listening on port " + port + "...");
+                SwingUtilities.invokeLater(() -> statusLabel.setText("Listening on port " + port + "..."));
 
                 byte[] buffer = new byte[1024];
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
@@ -119,7 +113,9 @@ public class FileReceiverGUI extends JFrame {
                 long fileSize = Long.parseLong(new String(packet.getData(), 0, packet.getLength()));
 
                 receivedFile = new File("received_files/" + fileName);
-                receivedFile.getParentFile().mkdirs();
+                if (!receivedFile.getParentFile().exists() && !receivedFile.getParentFile().mkdirs()) {
+                    throw new IOException("Failed to create directory.");
+                }
                 FileOutputStream fileOutputStream = new FileOutputStream(receivedFile);
 
                 long totalBytesReceived = 0;
@@ -132,15 +128,15 @@ public class FileReceiverGUI extends JFrame {
                 fileOutputStream.close();
                 socket.close();
 
-                statusLabel.setText("File received: " + receivedFile.getName());
-                openLocationButton.setEnabled(true);
-                openFileButton.setEnabled(true);
+                SwingUtilities.invokeLater(() -> {
+                    statusLabel.setText("File received: " + receivedFile.getName());
+                    openLocationButton.setEnabled(true);
+                    openFileButton.setEnabled(true);
+                });
             } catch (Exception ex) {
                 ex.printStackTrace();
-                statusLabel.setText("Error receiving file.");
+                SwingUtilities.invokeLater(() -> statusLabel.setText("Error receiving file."));
             }
         }).start();
     }
-
-
 }
