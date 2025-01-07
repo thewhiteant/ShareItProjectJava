@@ -1,3 +1,4 @@
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -5,7 +6,7 @@ import java.awt.event.ActionListener;
 
 public class Main extends JFrame {
     public Main() {
-        setTitle("File Transfer - Main Menu");
+        setTitle("AntShare");
         setSize(350, 250);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridBagLayout());

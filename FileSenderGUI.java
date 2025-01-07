@@ -1,3 +1,4 @@
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -12,7 +13,7 @@ public class FileSenderGUI extends JFrame {
     private File selectedFile;
 
     public FileSenderGUI() {
-        setTitle("File Sender");
+        setTitle("AntShare Sender");
         setSize(500, 300);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridBagLayout());
